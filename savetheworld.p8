@@ -5,8 +5,9 @@ function _init()
 	timer=0
 	frame=30
 	clr=6
-	limit=1600
 	explosion=0
+	stumble=false
+	stumbletimer=0
 	
 	qtetimer=0
 	active=0
@@ -16,13 +17,16 @@ function _init()
 		player.y=98
 		player.d=0
 		player.m=2
-		
+
+	distance={300,600,900,1200,1600}
+
 	answer={
 	 {4,5},
 	 {5,2,4},
 	 {4,5,3,5},
 	 {3,4,2,4,5}
 	}
+	
 	rndxy={}
 	for i=1,20 do
 	 rndxy[i]={rnd(100),rnd(100),rnd(8)}
@@ -46,8 +50,12 @@ function _update()
   end
  end
  --[[qte timer update]]--
- if true then
-  qtetimer+=1
+ qtetimer+=1
+ --[[stumble]]
+ if stumbletimer!=0 then
+  stumbletimer-=1
+ else
+  stumble=false
  end
 --[[color for timer]]--
 	if timer>=10 and timer<15then
@@ -66,10 +74,14 @@ function _draw()
  cls()
  map(0,0)
  debug()
- qte(300,answer[1])
- qte(600,answer[2])
- qte(900,answer[3])
- qte(1200,answer[4])
+ 
+ for i=1,4 do
+  if answer[i][#answer[i]]!=0
+  and	player.d >= distance[i] then
+	  qte(i,answer[i])
+	 end
+ end
+
 	ui() 
  for i=1,7 do
 	 rectfill(270-player.d+(200*(i-1)),54,300-player.d+(200*(i-1)),111,5)
@@ -91,16 +103,15 @@ end
 
 function move()
  if player.x!=172 then
-	 if btn(1) then
+	 if btn(1) and not stumble then
 	  if player.x==120 
-	  and player.d<limit then
+	  and player.d<distance[5] then
 	   player.d+=4
 	  elseif active==0 then
 		  player.x+=player.m
 		 end
 	 elseif btn(0) then
-	  if player.d<limit 
-	  and player.d>0  then
+	  if player.d>0  then
 	   player.d-=4
 	  elseif player.x>16 then
 	   player.x-=player.m
@@ -111,13 +122,14 @@ end
 -->8
 --qte
 
-function qte(place,rep)
- if place==player.d then
+function qte(num,rep)
+--
+ if distance[num]==player.d then
   qtetimer=0
- elseif place<player.d and rep[#rep]!=0 then
+ elseif distance[num]<player.d and rep[#rep]!=0 then
   for i=1,#rep do
    if active<i then
-	   sspr(0+((flr(qtetimer/6)*8)*(tonum(active+1==i))),
+	   sspr(0+((flr(qtetimer/4)*8)*(tonum(active+1==i))),
 	   24,8,8,(player.x-4)+(i*16)
 	   -(ceil(#rep/2)*16)-(8-(#rep%2)*8),
 	   player.y-30,16,16)
@@ -125,27 +137,51 @@ function qte(place,rep)
 	   -(ceil(#rep/2)*16)-(8-(#rep%2)*8),
 	   player.y-25)
 	  end
-  end
-  --  
+	 end
+--if
 	 if btnp(rep[active+1]) then
 	  if active!=#rep then
-	   active+=1
-	   qtetimer=0
+    set(rep)
 	  end
-	  if active==#rep then
-	   active=0
-	   rep[#rep]=0
+	 else
+		 for i=2,5 do
+	   if (btnp(i) and i!=rep[active+1])
+	   or qtetimer>=60 then
+					trip(rep)
+					rest(rep)
+	   end
 	  end
+	 end
+  
+  if active==#rep then
+   rest(rep)
   end
- end
+	end
+end
+
+function set()
+ active+=1
+	qtetimer=0
+end
+
+function rest(rep)
+ active=0
+ rep[#rep]=0
+end
+
+function trip(rep)
+ stumble=true
+	stumbletimer+=30*(#rep-active)
+	qtetimer=0
 end
 -->8
 --debug
 
 function debug()
  --print("normal timer: "..timer,player.x-60,player.y-60,3)
- --print("q.t.e. timer: "..qtetimer,player.x-60,player.y-52,3)
- print("player.x "..player.x.."| player.d "..player.d,player.x-60,player.y-46,3)
+ print("stumble timer: "..stumbletimer,player.x-30,player.y+46,3)
+ print("active: "..active,player.x-30,player.y+36,3)
+ print(btn(),player.x-30,player.y+56)
 end
 -->8
 -- ui
